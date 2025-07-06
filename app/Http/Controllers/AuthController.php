@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\BaseController;
+use App\Models\User;
+use Validator;
 
 class AuthController extends BaseController
 {
@@ -12,10 +15,14 @@ class AuthController extends BaseController
 
         switch($function){
             case 'register':   
-                $this->register($request);
+                return $this->register($request);
+                break;
+            case 'signin':
+                return $this->login($request);
+                break;
             default : 
                 $data = [];
-                $this->login($data);
+                return $this->sendError('Page Not Found', [], 404);
         }
     }
 
@@ -23,18 +30,18 @@ class AuthController extends BaseController
         $returnValue = [];
         $validator = Validator::make($data->all(), [
             'name' => 'required',
-            'email' => 'required|email',
+            'email' => 'required|unique:users,email',
             'password' => 'required',
             'c_password' => 'required|same:password'
         ]);
 
         if($validator->fails()){
-            return $this->SendError('Validation Error', 'Error to Validate Input', 500);
+            return $this->sendError('Validation Error', 'Error to Validate Input', 500);
         };
 
         $input = $data->all();
         $input['password'] = bcrypt($input['password']);
-        User::create($input);
+        $user = User::create($input);
 
         $returnValue = [
             'token' => $user->createToken('userToken')->plainTextToken,
@@ -42,7 +49,7 @@ class AuthController extends BaseController
             'email' => $user->email
         ];
 
-        return $this->sendSuccesss($returnValue, 'Success Register User', 200);
+        return $this->sendResponse($returnValue, 'Success Register User', 200);
     }
 
     protected function login($data){
