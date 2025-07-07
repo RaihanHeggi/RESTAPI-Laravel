@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\BaseController;
 use App\Models\User;
 use Validator;
@@ -36,7 +37,7 @@ class AuthController extends BaseController
         ]);
 
         if($validator->fails()){
-            return $this->sendError('Validation Error', 'Error to Validate Input', 500);
+            return $this->sendError('Something Error', $validator->errors()->first(), 500);
         };
 
         $input = $data->all();
@@ -53,6 +54,20 @@ class AuthController extends BaseController
     }
 
     protected function login($data){
-        echo 'Login Function';
+        $returnValue = [];
+        
+        if(Auth::attempt(['email' => $data->email, 'password' => $data->password])){
+            $user = Auth::user();
+            $returnValue = [
+                'token' => $user->createToken('userToken')->plainTextToken,
+                'name' => $user->name,
+                'email' => $user->email
+            ];
+
+        }else{
+            return $this->sendError('Failed to Login', [], 401);
+        }
+        
+        return $this->sendResponse($returnValue, "Login Successfuly", 200);
     }
 }    
